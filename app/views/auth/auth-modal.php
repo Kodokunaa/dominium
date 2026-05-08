@@ -1,0 +1,178 @@
+<?php
+$errors = $_SESSION['register_errors'] ?? [];
+$oldInput = $_SESSION['old_input'] ?? [];
+$loginErrors = $_SESSION['login_errors'] ?? [];
+$authMode = $authMode ?? (!empty($errors) ? 'signup' : 'login');
+$initialTab = (!empty($errors) || $authMode === 'signup') ? 'signup' : 'login';
+$page_title = $initialTab === 'signup' ? 'Register' : 'Login';
+$hide_header_auth_modal = $hide_header_auth_modal ?? true;
+include APP_ROOT . '/app/views/partials/header.php';
+unset($_SESSION['register_errors'], $_SESSION['old_input'], $_SESSION['login_errors']);
+?>
+
+<!-- Auth Modal with Login/Signup Switcher -->
+<div id="auth-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Account</h3>
+                <button onclick="closeAuthModal()" class="text-gray-400 hover:text-gray-600 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6L12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <!-- Tab Switcher -->
+                <div class="flex border-b border-gray-200 mb-6">
+                    <button onclick="switchTab('login')" id="login-tab" class="px-4 py-2 font-medium text-gray-700 border-b-2 border-indigo-600 text-indigo-600">Login</button>
+                    <button onclick="switchTab('signup')" id="signup-tab" class="px-4 py-2 font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700">Sign Up</button>
+                </div>
+                
+                <!-- Login Form -->
+                <div id="login-form" class="space-y-4">
+                    <!-- Google OAuth Button -->
+                    <a href="<?= url('auth/google') ?>" class="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 font-semibold py-3 rounded hover:bg-gray-50 transition mb-4">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12s.43 3.45 1.18-4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        Continue with Google
+                    </a>
+                    
+                    <?php if (!empty($loginErrors)): ?>
+                        <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded">
+                            <ul class="text-sm text-red-800 space-y-1">
+                                <?php foreach ($loginErrors as $error): ?>
+                                    <li><?= esc($error) ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <form action="<?= url('login') ?>" method="POST" class="space-y-4">
+                        <?= csrf_field() ?>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" name="email" required class="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-black" placeholder="you@example.com">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                            <input type="password" name="password" required class="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-black" placeholder="Your password">
+                        </div>
+
+                        <button type="submit" class="w-full bg-black text-white font-semibold py-3 rounded hover:bg-gray-800 transition">
+                            Sign In
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Signup Form -->
+                <div id="signup-form" class="space-y-4 hidden">
+                    <form action="<?= url('register') ?>" method="POST" class="space-y-4">
+                        <?= csrf_field() ?>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                                <input type="text" name="first_name" required class="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-black" placeholder="First name" value="<?= esc($oldInput['first_name'] ?? '') ?>">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                                <input type="text" name="last_name" required class="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-black" placeholder="Last name" value="<?= esc($oldInput['last_name'] ?? '') ?>">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" name="email" required class="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-black" placeholder="you@example.com" value="<?= esc($oldInput['email'] ?? '') ?>">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                            <input type="password" name="password" required class="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-black" placeholder="Min 6 characters">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                            <input type="password" name="password_confirm" required class="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-black" placeholder="Repeat password">
+                        </div>
+                        
+                        <?php if (!empty($errors)): ?>
+                            <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded">
+                                <ul class="text-sm text-red-800 space-y-1">
+                                    <?php foreach ($errors as $error): ?>
+                                        <li><?= esc($error) ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <button type="submit" class="w-full bg-black text-white font-semibold py-3 rounded hover:bg-gray-800 transition">
+                            Create Account
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openAuthModal() {
+    document.getElementById('auth-modal').classList.remove('hidden');
+    switchTab('login');
+}
+
+function closeAuthModal() {
+    document.getElementById('auth-modal').classList.add('hidden');
+}
+
+function switchTab(tab) {
+    const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
+    const loginTab = document.getElementById('login-tab');
+    const signupTab = document.getElementById('signup-tab');
+    
+    if (tab === 'login') {
+        loginForm.classList.remove('hidden');
+        signupForm.classList.add('hidden');
+        loginTab.classList.add('border-indigo-600', 'text-indigo-600');
+        loginTab.classList.remove('border-transparent', 'text-gray-500');
+        signupTab.classList.add('border-transparent', 'text-gray-500');
+        signupTab.classList.remove('border-indigo-600', 'text-indigo-600');
+    } else {
+        loginForm.classList.add('hidden');
+        signupForm.classList.remove('hidden');
+        signupTab.classList.add('border-indigo-600', 'text-indigo-600');
+        signupTab.classList.remove('border-transparent', 'text-gray-500');
+        loginTab.classList.add('border-transparent', 'text-gray-500');
+        loginTab.classList.remove('border-indigo-600', 'text-indigo-600');
+    }
+}
+
+// Close modal when clicking outside
+document.getElementById('auth-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeAuthModal();
+    }
+});
+
+// Close modal on escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeAuthModal();
+    }
+});
+
+// On direct /login or /register pages, keep the auth panel visible and select the correct tab.
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('auth-modal').classList.remove('hidden');
+    switchTab('<?= $initialTab ?>');
+});
+</script>
+
+<?php include APP_ROOT . '/app/views/partials/footer.php'; ?>

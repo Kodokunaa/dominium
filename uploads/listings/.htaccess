@@ -1,0 +1,4 @@
+# Uploaded images only — block script execution if misconfigured
+<FilesMatch "\.(?i:php|phtml|php3|php4|php5)$">
+    Require all denied
+</FilesMatch>
